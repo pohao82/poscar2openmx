@@ -28,9 +28,9 @@ def input_parser():
     parser.add_argument('--xc', help='functionals (default: GGA-PBE)', type=str, default='GGA-PBE',choices=['LDA','LSDA-CA','LSDA-PW','GGA-PBE'])
     parser.add_argument('--pol', help='spin polarization type', type=str, default='on',choices=['on','off','nc'])
     parser.add_argument('-o', '--output', help='Output OpenMX file name (default: openmx_input.dat)', default='openmx_input.dat')
-    parser.add_argument('-c','--coord_system', help='output coordinate system (default=F)', type=str, default='F',choices=['F','C'])
+    parser.add_argument('-c','--coord_system', help='output coordinate system (F)raction/Direct or (C)artesian (default=F)', type=str, default='F',choices=['F','C'])
     parser.add_argument('-v','--basis_ver', help='basis set ver.', type=str, default='19')
-    parser.add_argument('-p','--basis_prec', help='basis accuracy (default: Quick)', type=str, default='Quick', choices=['Quick','Standard','Precise'])
+    parser.add_argument('-p','--basis_prec', help='basis accuracy/size (default: Quick)', type=str, default='Quick', choices=['Quick','Standard','Precise'])
     parser.add_argument('-b','--band', help='band structure', type=str, default='off', choices=['on','off'])
 
     # should allow user define k-point path?
