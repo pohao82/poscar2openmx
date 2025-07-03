@@ -33,7 +33,6 @@ options:
                         band structure
   --element_order [ELEMENT_ORDER ...]
                         A list of element symbols (e.g., O La Fe Se), defines how elements will be sorted
-
 ```
 
 ## Basic Usage
@@ -71,4 +70,6 @@ Parameters specified in the parameter file will override command line parameters
 
 Three built-in options (--basis_prec) for basis set are extracted from the OpenMX official website https://www.openmx-square.org/openmx_man3.9/node27.html
 Currently, custom defined basis set can only be specified in the external file through --parameter_file.
+
+For magnetic systems, the magnetic moments need to be adjusted manually.
 

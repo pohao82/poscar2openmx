@@ -99,20 +99,24 @@ def write_openmx(structure, param):
 
             basis_parts = basis.split('-')
             pao_basis = basis_parts[1]
-            n_valence = omx_basis_data[element_info]["Valence electrons"]
+            # check if pp type is Hard, Soft or standard
+            pp_type = basis_parts[0][-1]
+            xc_basis = f"{element}_{xc_type}{basis_ver}"
+            if pp_type in ['H','S']:
+                # if H  overwrite
+                element_info=f"{element}_PBE{basis_ver}"+pp_type
+                xc_basis = xc_basis + pp_type
 
-            # if_pao_basis is provided override 
-            # pao_basis = costum_basis[element]
+            n_valence = omx_basis_data[element_info]["Valence electrons"]
 
             if element in ['V','Cr','Mn','Fe','Co','Ni','Cu','Zn']:
                 nve = [float(n_valence)/2+1,float(n_valence)/2-1]
             else:
                 nve = [float(n_valence)/2,float(n_valence)/2]
 
-            unique_bases[element] = {"basis":pao_basis, 
-                                     "n_valence":nve}
+            unique_bases[element] = {"basis":pao_basis, "n_valence":nve}
 
-            f.write(f" {element:<4} {basis:<16} {element}_{xc_type}{basis_ver}\n")
+            f.write(f" {element:<4} {basis:<16} {xc_basis}\n")
 
         f.write("Definition.of.Atomic.Species>\n")
         f.write("\n")
@@ -170,11 +174,19 @@ def write_openmx(structure, param):
         f.write("Atoms.SpeciesAndCoordinates>\n\n")
 
         # DFT+U
+        # U
         f.write("<Hubbard.U.values\n")
         for i, element in enumerate(unique_elements):
             bases=expand_basis(unique_bases[element]['basis'])
             f.write(f" {element:3}  {bases} \n")
         f.write("Hubbard.U.values>\n\n")
+
+        # if Hubbard.Occupation is full
+        f.write("<Hubbard.J.values\n")
+        for i, element in enumerate(unique_elements):
+            bases=expand_basis(unique_bases[element]['basis'])
+            f.write(f" {element:3}  {bases} \n")
+        f.write("Hubbard.J.values>\n\n")
 
         # Add some common OpenMX parameters
         f.write(f"scf.XcType                 {xc_info}   # LDA|LSDA-CA|LSDA-PW|GGA-PBE\n")
@@ -198,12 +210,12 @@ def write_openmx(structure, param):
         f.write("scf.criterion              1.0e-6\n")
         f.write("scf.restart                off          # on|off|c2n\n\n")
 
-        f.write("#scf.Constraint.NC.Spin     on          # on|off, default=off\n")
-        f.write("#scf.Constraint.NC.Spin.v   0.5         # default=0.0(eV)\n")
+        f.write("scf.Constraint.NC.Spin     off          # on|off, default=off\n")
+        f.write("scf.Constraint.NC.Spin.v   0.5         # default=0.0(eV)\n")
 
         # For MFT
+        f.write("# The Following is useful for magnetic force theorem, where soc is included as PT\n")
         f.write("# if restart = c2n\n")
-        f.write("# Followins are useful for magnetic force theorem, where soc is included as PT\n")
         f.write("#scf.Restart.Spin.Angle.Theta   90.0\n")
         f.write("#scf.Restart.Spin.Angle.Phi      0.0\n")
 
