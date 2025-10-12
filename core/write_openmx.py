@@ -6,20 +6,30 @@ import sys
 from .expand_basis import expand_basis
 from .omx_optimized_bases import omx_basis_data
 from .symbol2atomicN import Zatom
-from .read_poscar import read_poscar
+#from .read_poscar import read_poscar
 from .get_bandpath import get_bandpath
 
 def write_openmx(structure, param):
     """Write OpenMX .dat input file"""
 
-    output_filename = param.output
-    spin_pol = param.pol.lower()
-    xc_info = param.xc.upper()
-    basis_ver = param.basis_ver
-    band = param.band.lower()
-    custom_order = param.element_order
+    output_filename = param['output']
+    spin_pol = param['pol'].lower()
+    xc_info = param['xc'].upper()
+    basis_ver = param['basis_ver']
+    band = param['band'].lower()
+    custom_order = param['element_order']
 
-    noncollinear = True
+    basis_accuracy = param['basis_prec'] # "Standard"
+    basis_external = None
+    if param['basis']:
+        basis_external = param['basis'] # manually specified in the file read in using --parameter_file flag
+    #print('external bases')
+    #print(basis_external)
+    # output coordinate system
+    coord_system = param['coord_system'].upper() # 'F'
+
+
+
     # basis set parameters
     xc_parts = xc_info.split('-')
     if xc_parts[0]=='GGA':
@@ -27,16 +37,6 @@ def write_openmx(structure, param):
     else :
         xc_type='CA'
 
-    basis_accuracy = param.basis_prec # "Standard"
-    basis_external = None
-    if hasattr(param,'basis'):
-        basis_external = param.basis # manually specified in the file read in using --parameter_file flag
-
-    #print('external bases')
-    #print(basis_external)
-
-    # output coordinate system
-    coord_system = param.coord_system.upper() # 'F'
     # Convert coordinate system
     positions = []
     # four scenarios
@@ -140,6 +140,10 @@ def write_openmx(structure, param):
         # recorder according to custom_order
         #custom_order = ['O','La', 'Fe', 'Se']
 
+        magmom = []
+        # check if the magmom file exist read in and overwrite if does
+        
+
         if custom_order != None:
 
             print(custom_order)
@@ -159,18 +163,34 @@ def write_openmx(structure, param):
             #print('reordered')
             #[print(position) for position in positions]
 
+        if magmom == []:
+            for element, pos in positions:
+                species_index = list(unique_elements).index(element) + 1
+                n_up = unique_bases[element]["n_valence"][0] 
+                n_dn = unique_bases[element]["n_valence"][1] 
+                #noncol_angles = 's_theta s_phi orb_theta orb_phi 0' 
+                noncol_angles = '' 
+                if spin_pol.lower()=='nc':
+                    noncol_angles = '0.0   0.0   0.0   0.0  1'
+                f.write(f"  {atom_index:2}  {element:2}   {pos[0]: .8f}   {pos[1]: .8f}   {pos[2]: .8f}  {n_up}  {n_dn}   {noncol_angles} on\n")
+                atom_index += 1
+                atomic_numbers.append(Zatom.index(element)+1)
+        else:
+           # for element, pos in positions:
+           #     species_index = list(unique_elements).index(element) + 1
+           #     n_elec = unique_bases[element]["n_valence"][0]+unique_bases[element]["n_valence"][1] 
+           #     #n_up = n_elec + mag/2
+           #     #n_dn = n_elec - mag/2
+           #     #noncol_angles = 's_theta s_phi orb_theta orb_phi 0' 
+           #     noncol_angles = '' 
+           #     if spin_pol.lower()=='nc':
+           #         noncol_angles = '0.0   0.0   0.0   0.0  1'
+           #     f.write(f"  {atom_index:2}  {element:2}   {pos[0]: .8f}   {pos[1]: .8f}   {pos[2]: .8f}  {n_up}  {n_dn}   {noncol_angles} on\n")
+           #     atom_index += 1
+           #     atomic_numbers.append(Zatom.index(element)+1)
+           print('not yet!!!!!!!')
 
-        for element, pos in positions:
-            species_index = list(unique_elements).index(element) + 1
-            n_up = unique_bases[element]["n_valence"][0] 
-            n_dn = unique_bases[element]["n_valence"][1] 
-            #noncol_angles = 's_theta s_phi orb_theta orb_phi 0' 
-            noncol_angles = '' 
-            if spin_pol.lower()=='nc':
-                noncol_angles = '0.0   0.0   0.0   0.0  1'
-            f.write(f"  {atom_index:2}  {element:2}   {pos[0]: .8f}   {pos[1]: .8f}   {pos[2]: .8f}  {n_up}  {n_dn}   {noncol_angles} on\n")
-            atom_index += 1
-            atomic_numbers.append(Zatom.index(element)+1)
+
         f.write("Atoms.SpeciesAndCoordinates>\n\n")
 
         # DFT+U

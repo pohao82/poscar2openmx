@@ -47,12 +47,21 @@ def input_parser():
 def poscar2openmx():
 
     args = input_parser()
+    # if the external file exist
+    args_dict = {}
     if args.parameter_file:
         args_file, basis = input_parameter_reader(args.parameter_file)
+        print(args_file)
         print(f"parameters specified in the input fiel {args_file.keys()}")
         for key in args_file.keys():
             setattr(args, key, args_file[key])
         args.basis = basis
+        args_dict['basis'] = basis
+
+    # convert to dict form more flexible
+    args_dict = vars(args)
+    print(args_dict)
+
     #print(args.__dict__['xc'])
 
     # other optional arguments
@@ -69,9 +78,8 @@ def poscar2openmx():
 
     # Read POSCAR file
     structure = read_poscar(args.poscar)
-
     # Write OpenMX input file
-    write_openmx(structure, args)
+    write_openmx(structure, args_dict)
 
     print(f"Converted {args.poscar} to OpenMX format: {args.output}")
     print(f"input parameters {args}")

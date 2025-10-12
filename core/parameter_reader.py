@@ -37,7 +37,8 @@ def input_parameter_reader(config_file):
         except configparser.Error as e:
             print(f"Error reading configuration file {config_file}: {e}")
 
-    param['element_order'] = settings.get('element_order').split(' ')
+    if settings.get('element_order'):
+        param['element_order'] = settings.get('element_order').split(' ')
 
     if basis_dict:
         [print(basis_dict[x]) for x in basis_dict.keys()]
