@@ -1,0 +1,20 @@
+[settings]
+
+#xc = GGA-PBE
+pol = nc
+output = openmx_input_file.dat
+#coord_system = F
+element_order = Ho Ag Ge
+#basis_prec = Quick
+band = on
+# user defined basis set
+basis = {
+        'Ho':'Ho9.0-s3p2d1',
+        'Ag':'Se7.0-s2p2d1',
+        'Ge':'Ge6.0-s2p2'
+        }
+# vector_file for the spin moments
+vector_file = vec_file
+
+#magmom = 108*0 0 5.5  0 -0 -5.5  0 -0 -5.5  0 0  5.5  0 0  5.5  0 0  5.5  0 4.7631  2.75  0 4.7631  2.75  0 -4.7631 -2.75  0 -4.7631 -2.75  0 4.7631  2.75  0 4.7631  2.75  0 4.7631 -2.75  0 -4.7631  2.75  0 -4.7631  2.75  0 -4.7631  2.75  0 -4.7631  2.75  0 4.7631 -2.75  0
+

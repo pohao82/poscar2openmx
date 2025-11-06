@@ -1,0 +1,7 @@
+# command line examples 
+
+poscar2openmx  --parameter_file params_file 
+
+poscar2openmx  hoagge.poscar.cart  -o openmx_input_cmd0.dat  --pol nc  --parameter_file parameter_file  --vector_file vec_file
+
+poscar2openmx hoagge.poscar.cart --pol nc -o openmx_input_cmd1.dat --xc GGA-PBE --magmom  '108*0 0 5.5  0 -0 -5.5  0 -0 -5.5  0 0  5.5  0 0  5.5  0 0  5.5  0 4.7631  2.75  0 4.7631  2.75  0 -4.7631 -2.75  0 -4.7631 -2.75  0 4.7631  2.75  0 4.7631  2.75  0 4.7631 -2.75  0 -4.7631  2.75  0 -4.7631  2.75  0 -4.7631  2.75  0 -4.7631  2.75  0 4.7631 -2.75  0' --element_order Ag Ge Ho  --parameter_file params_file
