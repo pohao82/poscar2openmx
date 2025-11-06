@@ -83,6 +83,7 @@ poscar2openmx hoagge.poscar.cart --pol nc -o output.dat --parameter_file params_
 
 ### The spin moments can be specified through commandline using either VASP magmom string (--magmom)
 the spin moments can now be specified directly using two new command-line options. $N$ is the number of atoms.
+If pol=on (collinear), while the specified moments are noncollinear, only Mx components will be read.
 
 ### 1\. Using a VASP-style MAGMOM string:
 
