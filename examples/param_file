@@ -1,11 +1,12 @@
 [settings]
-output = input_new2.dat
-xc = LSDA-CA
-pol = off
-band = on 
-coord_system = C
+output = input_new_la.dat
+#xc = LSDA-CA
+pol = on
+#band = on 
+#coord_system = C
+#vector_file = magmom.input
 
-element_order = Se O Fe La 
+#element_order = Se O Fe La 
 #basis_prec = Quick
 
 basis = {

@@ -3,11 +3,9 @@ import ast # For safely evaluating a string containing a Python literal
 import os
 
 def input_parameter_reader(config_file):
-    config = configparser.ConfigParser()
-    #config_file = 'config.ini'
 
-    #param_keys = ['poscar','xc','pol','output','coord_system','basis_prec','band','element_order']
-    param_keys = ['poscar','xc','pol','output','coord_system','basis_prec','band']
+    config = configparser.ConfigParser()
+    param_keys = ['xc','pol','output','coord_system','basis_prec','band','magmom','vector_file']
 
     basis_dict = None
     if os.path.exists(config_file):
@@ -16,9 +14,6 @@ def input_parameter_reader(config_file):
             if 'settings' in config:
                 settings = config['settings']
 
-                #a dictionary comprehension not list comprehension
-                #for key in param_keys:
-                #    param[key] = settings.get(key)
                 param = {key: settings.get(key) for key in param_keys if settings.get(key) != None }
 
                 # Read the 'basis' string and convert to dictionary
@@ -42,13 +37,12 @@ def input_parameter_reader(config_file):
 
     if basis_dict:
         [print(basis_dict[x]) for x in basis_dict.keys()]
+        param['basis'] = basis_dict
     else:
         print("No basis set specified")
 
-    return  param, basis_dict
+    return param
 
 
-if __name__ == '__main__':
-    param,basis_dict = input_parameter_reader()
-    print(param)
-    print(basis_dict)
+#if __name__ == '__main__':
+#    param, basis_dict = input_parameter_reader()
