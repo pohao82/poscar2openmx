@@ -1,4 +1,3 @@
-````markdown
 # Usage
 
 **Note on Execution: After installation via pip install -e ., the package makes the script available as a direct command. It is executed simply as poscar2openmx instead of running the Python file (./poscar2openmx.py).
@@ -27,7 +26,7 @@
 ## input parameters 
 poscar2openmx  --help
 
-````
+```
 
 usage: poscar2openmx [-h] [--parameter_file PARAMETER_FILE]
                      [--xc {LDA,LSDA-CA,LSDA-PW,GGA-PBE}] [--pol {on,off,nc}]
@@ -58,11 +57,11 @@ options:
                         band structure
   --element_order [ELEMENT_ORDER ...]
                         A list of element symbols (e.g., O La Fe Se), defines how elements will be sorted
-  --magmom MAGMOM       vasp MAGMOM string
+  --magmom MAGMOM       vasp MAGMOM string (enclose values with quotation marks).
   --vector_file VECTOR_FILE
                         (Alternative input for moments) file that stores the vector (cartesian) as a natoms-by-3 array
 
-````
+```
 ## Basic Usage
 
 ### Simplest (default parameters)
@@ -123,6 +122,4 @@ pip install seekpath
   * Do not use quotation marks inside the parameter_file (i.e. vec_file rather than 'vec_file'), Unless it's inside the basis dictionary.
   * Currently, custom defined basis set can only be specified in the external file through `--parameter_file`.
   * Three built-in options (`--basis_prec`) for basis set are extracted from the OpenMX official website.
-
-<!-- end list -->
 
