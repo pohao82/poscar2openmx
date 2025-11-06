@@ -3,11 +3,11 @@ import json
 import os.path
 import sys 
 
-from .expand_basis import expand_basis
-from .omx_optimized_bases import omx_basis_data
-from .symbol2atomicN import Zatom
+from poscar2openmx.utils.expand_basis import expand_basis
+from poscar2openmx.utils.omx_optimized_bases import omx_basis_data
+from poscar2openmx.utils.symbol2atomicN import Zatom
 #from .read_poscar import read_poscar
-from .get_bandpath import get_bandpath
+from poscar2openmx.utils.get_bandpath import get_bandpath
 
 def write_openmx_str(structure, param):
     """Write OpenMX .dat input file"""
@@ -75,7 +75,8 @@ def write_openmx_str(structure, param):
     content_lines.append("HS.fileout        on     # on|off, default=off \n")
     content_lines.append("DATA.PATH  /home/pchang8/software/openmx/openmx3.9/DFT_DATA19 \n\n")
     # Species and atoms
-    unique_elements = set([p[0] for p in positions])
+    #unique_elements = set([p[0] for p in positions])
+    unique_elements = list(dict.fromkeys(p[0] for p in positions))
     content_lines.append(f"Species.Number       {len(unique_elements)}\n")
 
     # tract the basis set 

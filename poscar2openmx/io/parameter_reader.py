@@ -41,6 +41,7 @@ def input_parameter_reader(config_file):
     else:
         print("No basis set specified")
 
+    print(param)
     return param
 
 

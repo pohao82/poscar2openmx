@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "poscar2openmx"
+version = "0.1.0"
+description = "Convert VASP POSCAR to OpenMX input format"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE.txt"}
+authors = [{name = "Po-Hao Chang"}]
+dependencies = ["numpy"]
+
+[project.scripts]
+poscar2openmx = "poscar2openmx.cli:main"

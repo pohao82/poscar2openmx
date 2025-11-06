@@ -1,4 +1,6 @@
 bak
 __pycache__
 *_bak*
-exmaples
+examples/*
+*.egg-info
+tests
