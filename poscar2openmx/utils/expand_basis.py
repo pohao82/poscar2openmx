@@ -1,16 +1,18 @@
-def expand_basis(input_string):
+def expand_basis(input_string, values=None):
     """
     Converts a PAO notation (e.g., 's3p2d2') to expanded form used for U and J defintion
     (e.g., '1s 0 2s 0 3s 0 1p 0 2p 0 1d 0 2d 0')  
 
     Args:
         input_string (str): Input in the form of 's3p2d2' 
+        values (dict): optional non-zero entries, e.g. {'1f': 7.0}; all others are 0
 
     Returns:
         str: Expanded basis notation for U and J for OpenMX
     """
     # Initialize result string
     result = []
+    values = values or {}
 
     # Define the orbital types we'll look for
     orbital_types = ['s', 'p', 'd', 'f']
@@ -26,7 +28,7 @@ def expand_basis(input_string):
             if current_orbital and current_number:
                 max_count = int(current_number)
                 for i in range(1, max_count + 1):
-                    result.append(f"{i}{current_orbital} 0")
+                    result.append(f"{i}{current_orbital} {values.get(f'{i}{current_orbital}', 0)}")
 
             # Set the new current orbital
             current_orbital = char
@@ -38,7 +40,7 @@ def expand_basis(input_string):
     if current_orbital and current_number:
         max_count = int(current_number)
         for i in range(1, max_count + 1):
-            result.append(f"{i}{current_orbital} 0")
+            result.append(f"{i}{current_orbital} {values.get(f'{i}{current_orbital}', 0)}")
 
     # Join the result with spaces
     return " ".join(result)

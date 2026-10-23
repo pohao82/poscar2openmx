@@ -6,11 +6,15 @@ output = openmx_input_file.dat
 #coord_system = F
 element_order = Ho Ag Ge
 #basis_prec = Quick
+#basis_ver = 19
+# SCF k-grid: automatic n_i = ceil(kspacing / d_i), or an explicit kgrid (overrides kspacing)
+#kspacing = 35
+#kgrid = 2 3 9
 band = on
 # user defined basis set
 basis = {
         'Ho':'Ho9.0-s3p2d1',
-        'Ag':'Se7.0-s2p2d1',
+        'Ag':'Ag7.0-s2p2d1',
         'Ge':'Ge6.0-s2p2'
         }
 # vector_file for the spin moments

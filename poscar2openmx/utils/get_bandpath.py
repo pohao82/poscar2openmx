@@ -1,5 +1,7 @@
+import logging
 import numpy as np
-#import sys
+
+logger = logging.getLogger(__name__)
 
 def get_bandpath(positions,latvec,atomic_numbers):
 
@@ -20,7 +22,7 @@ def get_bandpath(positions,latvec,atomic_numbers):
     kpaths=[]
     try:
         import seekpath
-        print("SeeK-path is installed and available.")
+        logger.info("SeeK-path is installed and available.")
 
         structure = (latvec, positions, atomic_numbers)
         # Use seekpath to get the path and k-points
@@ -41,7 +43,7 @@ def get_bandpath(positions,latvec,atomic_numbers):
             kpaths.append(kpath)
 
     except ImportError:
-        print("SeeK-path is not installed. Install it with: pip install seekpath or set band to off")
+        logger.warning("SeeK-path is not installed, band output turned off. Install it with: pip install seekpath")
         #sys.exit()
 
     return kpaths

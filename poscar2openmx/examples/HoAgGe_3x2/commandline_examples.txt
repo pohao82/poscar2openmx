@@ -1,0 +1,14 @@
+# command line examples 
+
+poscar2openmx  hoagge.poscar.cart  --parameter_file params_file 
+
+poscar2openmx  hoagge.poscar.cart  -o openmx_input_cmd0.dat  --pol nc  --parameter_file params_file  --vector_file vec_file
+
+poscar2openmx hoagge.poscar.cart --pol nc -o openmx_input_cmd1.dat --xc GGA-PBE --magmom  '108*0 0 5.5  0 -0 -5.5  0 -0 -5.5  0 0  5.5  0 0  5.5  0 0  5.5  0 4.7631  2.75  0 4.7631  2.75  0 -4.7631 -2.75  0 -4.7631 -2.75  0 4.7631  2.75  0 4.7631  2.75  0 4.7631 -2.75  0 -4.7631  2.75  0 -4.7631  2.75  0 -4.7631  2.75  0 -4.7631  2.75  0 4.7631 -2.75  0' --element_order Ag Ge Ho
+
+# moments from the MAGMOM string stored in magmom_string
+poscar2openmx hoagge.poscar.cart --pol nc --magmom "$(cat magmom_string)"
+
+# k-point grid: automatic target spacing, or explicit grid
+poscar2openmx hoagge.poscar.cart --kspacing 40
+poscar2openmx hoagge.poscar.cart --kgrid 2 3 8

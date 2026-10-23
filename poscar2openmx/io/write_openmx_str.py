@@ -1,13 +1,19 @@
+import logging
 import numpy as np
-import json
-import os.path
-import sys 
 
 from poscar2openmx.utils.expand_basis import expand_basis
 from poscar2openmx.utils.omx_optimized_bases import omx_basis_data
 from poscar2openmx.utils.symbol2atomicN import Zatom
 #from .read_poscar import read_poscar
 from poscar2openmx.utils.get_bandpath import get_bandpath
+from poscar2openmx.utils.kgrid import auto_kgrid
+
+logger = logging.getLogger(__name__)
+
+# placeholders for elements missing from omx_basis_data
+PLACEHOLDER_CUTOFF = '8.0'
+PLACEHOLDER_PAO = 's2p2d2f1'
+PLACEHOLDER_U = 7.0
 
 def write_openmx_str(structure, param):
     """Write OpenMX .dat input file"""
@@ -82,6 +88,7 @@ def write_openmx_str(structure, param):
     # tract the basis set 
     content_lines.append("<Definition.of.Atomic.Species\n")
     unique_bases = {}
+    unknown_elements = []
     for i, element in enumerate(unique_elements):
 
         # database has only PBE but doesn't matter
@@ -92,10 +99,15 @@ def write_openmx_str(structure, param):
         if element in ['Fe','Co','Ni','Cu','Zn']:
             element_info +='S'
 
-        if basis_external:
+        species_comment = ''
+        if basis_external and element in basis_external:
             basis = basis_external[element]
-        else:
+        elif element_info in omx_basis_data:
             basis = omx_basis_data[element_info][basis_accuracy]
+        else:
+            # element not in the database: write a placeholder basis for the user to adjust
+            basis = f"{element}{PLACEHOLDER_CUTOFF}-{PLACEHOLDER_PAO}"
+            species_comment = '   # placeholder basis, not in database'
 
         basis_parts = basis.split('-')
         pao_basis = basis_parts[1]
@@ -107,16 +119,23 @@ def write_openmx_str(structure, param):
             element_info=f"{element}_PBE{basis_ver}"+pp_type
             xc_basis = xc_basis + pp_type
 
-        n_valence = omx_basis_data[element_info]["Valence electrons"]
-
-        if element in ['V','Cr','Mn','Fe','Co','Ni','Cu','Zn']:
-            nve = [float(n_valence)/2+1,float(n_valence)/2-1]
+        if element_info in omx_basis_data:
+            n_valence = omx_basis_data[element_info]["Valence electrons"]
+            if element in ['V','Cr','Mn','Fe','Co','Ni','Cu','Zn']:
+                nve = [float(n_valence)/2+1,float(n_valence)/2-1]
+            else:
+                nve = [float(n_valence)/2,float(n_valence)/2]
         else:
-            nve = [float(n_valence)/2,float(n_valence)/2]
+            # unknown valence, written as X in the coordinates block
+            nve = None
+            unknown_elements.append(element)
+            logger.warning(f"WARNING: {element} ({element_info}) not found in the basis database. "
+                           f"Placeholders written: basis {basis}, valence X, Hubbard U = {PLACEHOLDER_U}. "
+                           f"Edit them before running OpenMX.")
 
         unique_bases[element] = {"basis":pao_basis, "n_valence":nve}
 
-        content_lines.append(f" {element:<4} {basis:<16} {xc_basis}\n")
+        content_lines.append(f" {element:<4} {basis:<16} {xc_basis}{species_comment}\n")
 
     content_lines.append("Definition.of.Atomic.Species>\n")
     content_lines.append("\n")
@@ -138,12 +157,10 @@ def write_openmx_str(structure, param):
     atomic_numbers = []
 
     if custom_order != None:
-        print('custom_order')
-        print(custom_order)
+        logger.info(f'custom element order: {custom_order}')
         if set(custom_order) != set(unique_elements):
-            print( set(custom_order)!=set(unique_elements))
-            print('Error: inconsistent input elements. Check if all the atomic speices defined in --element_reorder exist in POSCAR')
-            sys.exit()
+            raise ValueError(f'element_order {custom_order} does not match the elements '
+                             f'in POSCAR {unique_elements}')
         # reorder 
         # Create a mapping from the element symbol to its position in the custom order
         # This dictionary will help the sorting function understand the desired sequence.
@@ -159,7 +176,7 @@ def write_openmx_str(structure, param):
         # 2. Sort the indices based on the element symbol in the original 'positions' list
         # The lambda function takes an index 'i' and looks up the corresponding element in positions.
         sorted_indices = sorted(indices, key=lambda i: order_map[positions[i][0]])
-        print(f"Original index order after sorting: {sorted_indices}")
+        logger.debug(f"Original index order after sorting: {sorted_indices}")
         # Expected output: [0, 1, 2, 3, 4, 5, 6, 7, 8] (because it's already sorted by Dy, then Ag, then Ge)
         # If positions were shuffled, this list would be different.
         # 3. Rebuild both lists using the sorted_indices map
@@ -171,13 +188,18 @@ def write_openmx_str(structure, param):
     if magmom is None:
         for element, pos in positions:
             species_index = list(unique_elements).index(element) + 1
-            n_up = unique_bases[element]["n_valence"][0] 
-            n_dn = unique_bases[element]["n_valence"][1] 
-            #noncol_angles = 's_theta s_phi orb_theta orb_phi 0' 
-            noncol_angles = '' 
+            nve = unique_bases[element]["n_valence"]
+            if nve is None:
+                pop_str = f"{'X':>5} {'X':>5}"
+                valence_comment = '   # replace X by valence/2'
+            else:
+                pop_str = f"{nve[0]:5.2f} {nve[1]:5.2f}"
+                valence_comment = ''
+            #noncol_angles = 's_theta s_phi orb_theta orb_phi 0'
+            noncol_angles = ''
             if spin_pol.lower()=='nc':
                 noncol_angles = '0.0   0.0   0.0   0.0  1'
-            content_lines.append(f"  {atom_index:2}  {element:2}   {pos[0]: .8f}   {pos[1]: .8f}   {pos[2]: .8f} {n_up:5.2f} {n_dn:5.2f} {noncol_angles} on\n")
+            content_lines.append(f"  {atom_index:2}  {element:2}   {pos[0]: .8f}   {pos[1]: .8f}   {pos[2]: .8f} {pop_str} {noncol_angles} on{valence_comment}\n")
             atom_index += 1
             atomic_numbers.append(Zatom.index(element)+1)
     else:
@@ -189,19 +211,27 @@ def write_openmx_str(structure, param):
 
         for element, pos, moment in coord_mom:
             species_index = list(unique_elements).index(element) + 1
-            n_elec = unique_bases[element]["n_valence"][0]+unique_bases[element]["n_valence"][1] 
-
+            nve = unique_bases[element]["n_valence"]
             mag   = moment[0]
-            n_up = (n_elec + mag)/2
-            n_dn = (n_elec - mag)/2
+            if nve is None:
+                pop_str = f"{'X':>5}  {'X':>5}"
+                up_sign, dn_sign = ('+', '-') if mag >= 0 else ('-', '+')
+                valence_comment = (f'   # replace X by (valence {up_sign} {abs(mag):.2f})/2 and '
+                                   f'(valence {dn_sign} {abs(mag):.2f})/2')
+            else:
+                n_elec = nve[0] + nve[1]
+                n_up = (n_elec + mag)/2
+                n_dn = (n_elec - mag)/2
+                pop_str = f"{n_up:5.2f}  {n_dn:5.2f}"
+                valence_comment = ''
 
-            noncol_angles = '' 
+            noncol_angles = ''
             if spin_pol.lower()=='nc':
                 theta = moment[1]
                 phi   = moment[2]
                 noncol_angles = f'  {theta:7.2f} {phi:7.2f} {theta:7.2f} {phi:7.2f} 1 on'
 
-            content_lines.append(f"  {atom_index:2}  {element:2}   {pos[0]: .8f}   {pos[1]: .8f}   {pos[2]: .8f}  {n_up:5.2f}  {n_dn:5.2f}{noncol_angles}\n")
+            content_lines.append(f"  {atom_index:2}  {element:2}   {pos[0]: .8f}   {pos[1]: .8f}   {pos[2]: .8f}  {pop_str}{noncol_angles}{valence_comment}\n")
             atom_index += 1
             atomic_numbers.append(Zatom.index(element)+1)
 
@@ -210,7 +240,12 @@ def write_openmx_str(structure, param):
     # DFT+U
     content_lines.append("<Hubbard.U.values\n")
     for i, element in enumerate(unique_elements):
-        bases=expand_basis(unique_bases[element]['basis'])
+        u_values = None
+        if element in unknown_elements:
+            # placeholder U on the first shell of the highest angular momentum (e.g. 1f)
+            highest_l = [c for c in unique_bases[element]['basis'] if c in 'spdf'][-1]
+            u_values = {f'1{highest_l}': PLACEHOLDER_U}
+        bases=expand_basis(unique_bases[element]['basis'], u_values)
         content_lines.append(f" {element:3}  {bases} \n")
     content_lines.append("Hubbard.U.values>\n\n")
 
@@ -230,13 +265,19 @@ def write_openmx_str(structure, param):
     content_lines.append("scf.ElectronicTemperature  300.0        # default=300 (K)\n")
     content_lines.append("scf.energycutoff           250.0        # default=150 (Ry)\n")
     content_lines.append("scf.EigenvalueSolver       band\n")
-    content_lines.append("scf.Kgrid                  4 4 4\n")
+    if param.get('kgrid'):
+        kgrid = [int(n) for n in param['kgrid']]
+        kgrid_comment = 'user defined'
+    else:
+        kgrid = auto_kgrid(latvec, float(param['kspacing']))
+        kgrid_comment = f"auto: n_i*d_i >= {float(param['kspacing']):g} Ang"
+    content_lines.append(f"scf.Kgrid                  {kgrid[0]} {kgrid[1]} {kgrid[2]}        # {kgrid_comment}\n")
     # mixing parameters 
-    content_lines.append("scf.maxIter                100\n")
+    content_lines.append("scf.maxIter                150\n")
     content_lines.append("scf.Mixing.Type            rmm-diish    # Simple|Rmm-Diis|Gr-Pulay|Kerker|Rmm-Diisk|rmm-dissh\n")
     content_lines.append("scf.Init.Mixing.Weight     0.30\n")
     content_lines.append("scf.Min.Mixing.Weight      0.002\n")
-    content_lines.append("scf.Max.Mixing.Weight      0.40\n")
+    content_lines.append("scf.Max.Mixing.Weight      0.10\n")
     content_lines.append("scf.Mixing.History         15\n")
     content_lines.append("scf.Mixing.StartPulay      10\n")
     content_lines.append("#scf.Mixing.EveryPulay     6\n")

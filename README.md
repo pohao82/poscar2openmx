@@ -3,6 +3,17 @@
 **Note on Execution: After installation via pip install -e ., the package makes the script available as a direct command. It is executed simply as poscar2openmx instead of running the Python file (./poscar2openmx.py).
 **Added support for moments
 
+## What's new
+
+- **Example input:** `poscar2openmx --example` copies a ready-to-run example (`input_example_HoAgGe`) into the current folder and prints the standard commands. Running `poscar2openmx` with no arguments only prints a short hint.
+- **Automatic k-point grid:** `scf.Kgrid` is now chosen from the cell size (n_i × d_i ≥ 35 Å) instead of a fixed `4 4 4`. Adjust it with `--kspacing`, or set it directly with `--kgrid`.
+- **Python API:** `from poscar2openmx import convert` returns the OpenMX input as text and can also write it to a file. Moments can be passed as a MAGMOM string or an array.
+- **Elements missing from the basis database** (e.g. Eu, Gd, Tb, Er, Tm, Yb) no longer crash the conversion. The output gets placeholders to edit by hand, and a warning is printed.
+- **Case-insensitive options:** `-p standard`, `-c c`, `--pol NC` etc. now work. `--basis_prec` and `--coord_system` only look at the first letter.
+- **Clearer errors:** bad input stops with a short `Error: ...` message instead of a traceback or a silent exit. This covers an `element_order` that doesn't match the POSCAR, a moment count that doesn't match the number of atoms, a missing parameter file, and an invalid `basis`.
+- **Parameter file:** now also accepts `basis_ver`, `kspacing` and `kgrid`.
+- **Fixes:** corrected the Ag basis in the HoAgGe example `params_file`. Fixed the example commands in `commandline_examples.txt`.
+
 ## 🚀 Installation
 
 1.  **Clone the repository:**
@@ -16,11 +27,17 @@
     # Using Conda
     conda create -n venv python=3.11
     conda activate venv 
+
+    # Or using Python's built-in venv (Python >= 3.8)
+    python3 -m venv .venv
+    source .venv/bin/activate      # Windows: .venv\Scripts\activate
     ```
 
 3.  **Install in editable mode:**
     ```bash
     pip install -e .
+    # with test dependencies (pytest)
+    pip install -e ".[test]"
     ```
 
 ## input parameters 
@@ -28,7 +45,7 @@ poscar2openmx  --help
 
 ```
 
-usage: poscar2openmx [-h] [--parameter_file PARAMETER_FILE]
+usage: poscar2openmx [-h] [--example] [--parameter_file PARAMETER_FILE]
                      [--xc {LDA,LSDA-CA,LSDA-PW,GGA-PBE}] [--pol {on,off,nc}]
                      [-o OUTPUT] [-c {F,C}] [-v BASIS_VER]
                      [-p {Quick,Standard,Precise}] [-b {on,off}]
@@ -42,6 +59,7 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
+  --example             copy an example input to ./input_example_HoAgGe and show how to run it
   --parameter_file PARAMETER_FILE
                         read input parameters from a file.
   --xc {LDA,LSDA-CA,LSDA-PW,GGA-PBE}
@@ -60,9 +78,17 @@ options:
   --magmom MAGMOM       vasp MAGMOM string (enclose values with quotation marks).
   --vector_file VECTOR_FILE
                         (Alternative input for moments) file that stores the vector (cartesian) as a natoms-by-3 array
+  --kspacing KSPACING   automatic k-grid, n_i = ceil(kspacing / d_i) with d_i the lattice-plane spacing in Ang (default: 35)
+  --kgrid N1 N2 N3      explicit k-grid, overrides --kspacing
 
 ```
 ## Basic Usage
+
+### Getting started: example input
+```bash
+poscar2openmx --example
+```
+Running `poscar2openmx` with no arguments only prints a short hint. `--example` copies an example input folder, `input_example_HoAgGe` (54-atom HoAgGe, noncollinear), into the current folder and prints the standard commands. An existing folder with that name is not overwritten. It contains the POSCAR (cartesian and fractional), a `params_file` with every supported parameter, a `vec_file`, a `magmom_string` and `commandline_examples.txt`.
 
 ### Simplest (default parameters)
 ```bash
@@ -117,7 +143,39 @@ To install `seekpath`:
 pip install seekpath
 ```
 
+## k-point grid
+`scf.Kgrid` is set automatically so that n_i × d_i ≥ 35 Å along each direction, where d_i is the spacing between lattice planes (equal to the lattice constant for orthogonal cells). Change the target with `--kspacing`, or give the grid directly with `--kgrid 6 6 1`. Both can also go in the parameter file (`kspacing = 35`, `kgrid = 6 6 1`). For slabs, set the vacuum direction to 1 with `--kgrid`.
+
+## Python API
+```python
+from poscar2openmx import convert
+
+# returns the input file as a string; writes it only when output is given
+text = convert('V2Se2O.cube_1F.vasp', pol='on', magmom='-1 1 3*0', output='openmx.dat')
+
+# moments can also be a list/array (N values for collinear, N-by-3 for noncollinear)
+text = convert('POSCAR', pol='nc', magmom=moments_array, kgrid=[6, 6, 1])
+
+# the parameter file works the same way as on the command line (it overrides keyword arguments)
+text = convert('POSCAR', parameter_file='params_file')
+```
+All keyword arguments and their defaults are in `poscar2openmx.DEFAULTS`. Informational messages go through Python `logging` (hidden by default in scripts); warnings, such as a missing basis, are still shown.
+
+## Elements missing from the basis database
+Some elements (e.g. Eu, Gd, Tb, Er, Tm, Yb) have no entry in the built-in basis database. The conversion still runs and prints a warning, and the output contains placeholders to edit by hand:
+  * a placeholder basis (`<El>8.0-s2p2d2f1`) unless a basis is given for that element in the parameter file,
+  * `X` for the up/down electron counts, with a comment saying what to replace them with,
+  * Hubbard U = 7.0 on the first shell of the highest orbital (e.g. `1f 7.0`); J stays 0.
+
+## Tests
+```bash
+pip install -e ".[test]"
+pytest
+```
+`tests/golden/` holds reference output files. After an intended change to the output, regenerate them with `UPDATE_GOLDEN=1 pytest tests/test_golden.py` and review the diff.
+
 ## Important Note
+  * Option values are case-insensitive, on the command line and in the parameter file. `--basis_prec` and `--coord_system` only look at the first letter (`q`, `standard`, `P`; `f`, `cart`, `Direct`). `--xc`, `--pol` and `--band` need the full word (e.g. `gga-pbe`, `NC`, `on`) because their first letters are shared.
 
   * Parameters specified in the **parameter file will override command line parameters**.
   * Do not use quotation marks inside the parameter_file (i.e. vec_file rather than 'vec_file'), Unless it's inside the basis dictionary.
